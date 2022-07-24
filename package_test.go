@@ -7,6 +7,14 @@ import (
 	"github.com/gregoryv/testlog"
 )
 
+func TestWrap(t *testing.T) {
+	t.Run("x", testlog.Wrap(func(t *testing.T) {
+		log.Print("test")
+		// uncomment to see results
+		//t.Fail()
+	}))
+}
+
 func TestCatch(t *testing.T) {
 	buf := testlog.Catch(t)
 	log.Print("x")

@@ -2,22 +2,31 @@ package testlog
 
 import (
 	"bytes"
+	"io"
 	"log"
 	"testing"
 )
 
-// Catch sets log.Default() writer to a bytes buffer and clears it's
-// flags.  Restoring them once the test is done.
-func Catch(t *testing.T) *bytes.Buffer {
-	w := log.Default().Writer()
-	f := log.Default().Flags()
-	t.Cleanup(func() {
-		log.SetOutput(w)
-		log.SetFlags(f)
-	})
+// Catch redirects the given loggers output to a bytes.Buffer with
+// cleared flags. Restoring them once the test is done. If no loggers
+// are given log.Default() is used.
+func Catch(t *testing.T, loggers ...Logger) *bytes.Buffer {
+	if len(loggers) == 0 {
+		loggers = append(loggers, log.Default())
+	}
 	var buf bytes.Buffer
-	log.SetOutput(&buf)
-	log.SetFlags(0)
+	for _, l := range loggers {
+		w, f := l.Writer(), l.Flags()
+		reset := func() {
+			l.SetOutput(w)
+			l.SetFlags(f)
+		}
+		t.Cleanup(reset)
+
+		// use buffer
+		l.SetOutput(&buf)
+		l.SetFlags(0)
+	}
 	return &buf
 }
 
@@ -35,3 +44,10 @@ func Wrap(test testFunc) testFunc {
 }
 
 type testFunc func(*testing.T)
+
+type Logger interface {
+	Writer() io.Writer
+	Flags() int
+	SetFlags(int)
+	SetOutput(io.Writer)
+}
